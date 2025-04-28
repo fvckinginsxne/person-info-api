@@ -1,0 +1,7 @@
+version: "3"
+
+tasks:
+  run:
+    desc: "Runs application"
+    cmds:
+      - go run ./cmd/app/main.go --config=.env
