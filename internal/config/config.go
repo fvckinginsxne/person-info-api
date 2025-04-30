@@ -15,7 +15,7 @@ type Config struct {
 
 type ServerConfig struct {
 	Host        string        `env:"HOST" env-default:"localhost"`
-	Port        string        `env:"PORT" env-default:"8080"`
+	Port        int           `env:"PORT" env-default:"8080"`
 	Timeout     time.Duration `env:"TIMEOUT" env-default:"15s"`
 	IdleTimeout time.Duration `env:"IDLE_TIMEOUT" env-default:"60s"`
 }
