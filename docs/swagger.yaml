@@ -1,0 +1,108 @@
+basePath: /
+definitions:
+  dto.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  dto.PersonResponse:
+    properties:
+      age:
+        type: integer
+      gender:
+        type: string
+      name:
+        type: string
+      nationality:
+        type: string
+      patronymic:
+        type: string
+      surname:
+        type: string
+    type: object
+  save.Request:
+    properties:
+      name:
+        example: John
+        type: string
+      patronymic:
+        example: Dmitrievich
+        type: string
+      surname:
+        example: Snow
+        type: string
+    required:
+    - name
+    - surname
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API for getting most probable age, gender, nationality for a person
+  title: Person Info API
+  version: "1.0"
+paths:
+  /people:
+    post:
+      consumes:
+      - application/json
+      description: Saves a person enriching with age, gender, nationality
+      parameters:
+      - description: Person request data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/save.Request'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Successfully saved person
+          schema:
+            $ref: '#/definitions/dto.PersonResponse'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Person already exists
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Save new person
+      tags:
+      - /people
+  /people/{id}:
+    delete:
+      description: Deletes a person by person id
+      parameters:
+      - description: Person ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Person deleted successfully
+        "400":
+          description: Missing or invalid id
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Person not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Delete a person
+      tags:
+      - /people
+schemes:
+- http
+swagger: "2.0"

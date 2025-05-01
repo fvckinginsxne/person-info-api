@@ -1,7 +1,7 @@
 package storage
 
-import "errors"
+import "fmt"
 
 var (
-	ErrPersonExists = errors.New("person already exists")
+	ErrPersonNotFound = fmt.Errorf("person not found")
 )

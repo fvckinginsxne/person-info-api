@@ -47,8 +47,6 @@ func New(
 	return func(c *gin.Context) {
 		log := log.With(slog.String("op", op))
 
-		log.Info("saving person")
-
 		var req Request
 		if err := c.ShouldBindJSON(&req); err != nil {
 			if errors.Is(err, io.EOF) {

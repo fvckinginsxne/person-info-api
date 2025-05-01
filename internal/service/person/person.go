@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"person-info/internal/storage"
 
 	"person-info/internal/domain/model"
 	"person-info/internal/lib/logger/sl"
@@ -13,6 +14,7 @@ import (
 type Storage interface {
 	SavePerson(ctx context.Context, person *model.Person) error
 	PersonExists(ctx context.Context, person *model.Person) (bool, error)
+	DeletePerson(ctx context.Context, id int64) error
 }
 
 type AgeProvider interface {
@@ -28,7 +30,8 @@ type NationalityProvider interface {
 }
 
 var (
-	ErrPersonExists = errors.New("person already exists")
+	ErrPersonExists   = errors.New("person already exists")
+	ErrPersonNotFound = errors.New("person not found")
 )
 
 type Service struct {
@@ -80,21 +83,21 @@ func (s *Service) Save(
 
 	age, err := s.ageProvider.Age(ctx, person.Name)
 	if err != nil {
-		log.Error("failed to get agify", sl.Err(err))
+		log.Error("failed to get age", sl.Err(err))
 
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	gender, err := s.genderProvider.Gender(ctx, person.Name)
 	if err != nil {
-		log.Error("failed to get genderize", sl.Err(err))
+		log.Error("failed to get gender", sl.Err(err))
 
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	nationality, err := s.nationalityProvider.Nationality(ctx, person.Name)
 	if err != nil {
-		log.Error("failed to get nationalize", sl.Err(err))
+		log.Error("failed to get nationality", sl.Err(err))
 
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -110,6 +113,31 @@ func (s *Service) Save(
 	}
 
 	log.Info("person saved successfully")
+
+	return nil
+}
+
+func (s *Service) Delete(ctx context.Context, id int64) error {
+	const op = "service.person.Delete"
+
+	log := s.log.With(
+		slog.String("op", op),
+		slog.Int64("id", id),
+	)
+
+	log.Info("deleting person")
+
+	if err := s.storage.DeletePerson(ctx, id); err != nil {
+		if errors.Is(err, storage.ErrPersonNotFound) {
+			log.Error("person not found:", slog.Int64("id", id))
+
+			return fmt.Errorf("%s: %w", op, ErrPersonNotFound)
+		}
+
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	log.Info("person deleted successfully")
 
 	return nil
 }

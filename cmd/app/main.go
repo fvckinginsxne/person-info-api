@@ -15,6 +15,7 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
+	_ "person-info/docs"
 	"person-info/internal/client/person/agify"
 	"person-info/internal/client/person/genderize"
 	"person-info/internal/client/person/nationalize"
@@ -22,6 +23,7 @@ import (
 	"person-info/internal/lib/logger/sl"
 	personService "person-info/internal/service/person"
 	"person-info/internal/storage/postgres"
+	del "person-info/internal/transport/handler/person/delete"
 	"person-info/internal/transport/handler/person/save"
 	healthchecker "person-info/internal/transport/middleware/health-checker"
 )
@@ -35,7 +37,7 @@ const (
 // @description API for getting most probable age, gender, nationality for a person
 // @host localhost:8080
 // @BasePath /
-// @schemes person
+// @schemes http
 func main() {
 	cfg := config.MustLoad()
 
@@ -83,6 +85,7 @@ func main() {
 	peopleGroup := g.Group("/people")
 	{
 		peopleGroup.POST("/", save.New(ctx, log, service))
+		peopleGroup.DELETE("/:id", del.New(ctx, log, service))
 	}
 
 	srvAddr := serverAddr(cfg)

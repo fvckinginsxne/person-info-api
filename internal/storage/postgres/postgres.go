@@ -8,6 +8,7 @@ import (
 	_ "github.com/lib/pq"
 
 	"person-info/internal/domain/model"
+	"person-info/internal/storage"
 )
 
 type Storage struct {
@@ -30,7 +31,7 @@ func New(connURL string) (*Storage, error) {
 }
 
 func (s *Storage) PersonExists(ctx context.Context, person *model.Person) (bool, error) {
-	const op = "service.person.Exists"
+	const op = "storage.postgres.Exists"
 
 	var exists bool
 	err := s.db.QueryRowContext(ctx, `
@@ -44,7 +45,7 @@ func (s *Storage) PersonExists(ctx context.Context, person *model.Person) (bool,
 }
 
 func (s *Storage) SavePerson(ctx context.Context, person *model.Person) error {
-	const op = "service.person.SavePerson"
+	const op = "storage.postgres.SavePerson"
 
 	stmt, err := s.db.PrepareContext(ctx, `
 		INSERT INTO people (name, surname, patronymic, age, gender, nationality) 
@@ -65,6 +66,26 @@ func (s *Storage) SavePerson(ctx context.Context, person *model.Person) error {
 	)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+func (s *Storage) DeletePerson(ctx context.Context, id int64) error {
+	const op = "storage.postgres.DeletePerson"
+
+	result, err := s.db.ExecContext(ctx, `DELETE FROM people WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	n, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if n == 0 {
+		return fmt.Errorf("%s: %w", op, storage.ErrPersonNotFound)
 	}
 
 	return nil
