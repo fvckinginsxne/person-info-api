@@ -1,4 +1,4 @@
-package save
+package create
 
 import (
 	"context"
@@ -16,12 +16,6 @@ import (
 	"person-info/internal/transport/dto"
 )
 
-type Request struct {
-	Name       string `json:"name" binding:"required" example:"John"`
-	Surname    string `json:"surname" binding:"required" example:"Snow"`
-	Patronymic string `json:"patronymic,omitempty" example:"Dmitrievich"`
-}
-
 type PersonSaver interface {
 	Save(ctx context.Context, person *model.Person) error
 }
@@ -31,7 +25,7 @@ type PersonSaver interface {
 // @Tags /people
 // @Accept json
 // @Produce json
-// @Param input body Request true "Person request data"
+// @Param input body dto.CreatePersonRequest true "Person request data"
 // @Success 201 {object} dto.PersonResponse "Successfully saved person"
 // @Failure 400 {object} dto.ErrorResponse "Invalid request data"
 // @Failure 409 {object} dto.ErrorResponse "Person already exists"
@@ -42,12 +36,12 @@ func New(
 	log *slog.Logger,
 	personSaver PersonSaver,
 ) gin.HandlerFunc {
-	const op = "handler.person.save.New"
+	const op = "handler.person.create.New"
 
 	return func(c *gin.Context) {
 		log := log.With(slog.String("op", op))
 
-		var req Request
+		var req dto.CreatePersonRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			if errors.Is(err, io.EOF) {
 				log.Error("request body is empty")
@@ -70,7 +64,7 @@ func New(
 		}
 
 		if err := personSaver.Save(ctx, person); err != nil {
-			log.Error("failed to save person", sl.Err(err))
+			log.Error("failed to create person", sl.Err(err))
 
 			switch {
 			case errors.Is(err, personSevice.ErrPersonExists):

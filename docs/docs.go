@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/save.Request"
+                            "$ref": "#/definitions/dto.CreatePersonRequest"
                         }
                     }
                 ],
@@ -76,7 +76,7 @@ const docTemplate = `{
                 "summary": "Delete a person",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Person ID",
                         "name": "id",
                         "in": "path",
@@ -106,10 +106,88 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "patch": {
+                "description": "Updates a person by id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "/people"
+                ],
+                "summary": "Update a person",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Person ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update fields",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdatePersonRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Updated person",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PersonResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Person not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
             }
         }
     },
     "definitions": {
+        "dto.CreatePersonRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "surname"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "example": "John"
+                },
+                "patronymic": {
+                    "type": "string",
+                    "example": "Dmitrievich"
+                },
+                "surname": {
+                    "type": "string",
+                    "example": "Snow"
+                }
+            }
+        },
         "dto.ErrorResponse": {
             "type": "object",
             "properties": {
@@ -141,24 +219,26 @@ const docTemplate = `{
                 }
             }
         },
-        "save.Request": {
+        "dto.UpdatePersonRequest": {
             "type": "object",
-            "required": [
-                "name",
-                "surname"
-            ],
             "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "gender": {
+                    "type": "string"
+                },
                 "name": {
-                    "type": "string",
-                    "example": "John"
+                    "type": "string"
+                },
+                "nationality": {
+                    "type": "string"
                 },
                 "patronymic": {
-                    "type": "string",
-                    "example": "Dmitrievich"
+                    "type": "string"
                 },
                 "surname": {
-                    "type": "string",
-                    "example": "Snow"
+                    "type": "string"
                 }
             }
         }

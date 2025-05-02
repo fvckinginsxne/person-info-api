@@ -3,8 +3,10 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
 	_ "github.com/lib/pq"
 
 	"person-info/internal/domain/model"
@@ -71,6 +73,50 @@ func (s *Storage) SavePerson(ctx context.Context, person *model.Person) error {
 	return nil
 }
 
+func (s *Storage) UpdatePerson(
+	ctx context.Context,
+	id int64,
+	person *model.Person,
+) (*model.Person, error) {
+	const op = "storage.postgres.UpdatePerson"
+
+	builder := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	updateBuilder := builder.Update("people")
+
+	updateBuilder = setUpdatedFields(updateBuilder, person)
+
+	if _, args, _ := updateBuilder.ToSql(); len(args) == 0 {
+		return nil, fmt.Errorf("%s: %w", op, storage.ErrNoUpdatedFields)
+	}
+
+	query, args, err := updateBuilder.
+		Where(sq.Eq{"id": id}).
+		Suffix("RETURNING name, surname, patronymic, age, gender, nationality").
+		ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	err = s.db.QueryRowContext(ctx, query, args...).Scan(
+		&person.Name,
+		&person.Surname,
+		&person.Patronymic,
+		&person.Age,
+		&person.Gender,
+		&person.Nationality,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("%s: %w", op, storage.ErrPersonNotFound)
+		}
+
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return person, nil
+}
+
 func (s *Storage) DeletePerson(ctx context.Context, id int64) error {
 	const op = "storage.postgres.DeletePerson"
 
@@ -79,12 +125,7 @@ func (s *Storage) DeletePerson(ctx context.Context, id int64) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	n, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-
-	if n == 0 {
+	if n, _ := result.RowsAffected(); n == 0 {
 		return fmt.Errorf("%s: %w", op, storage.ErrPersonNotFound)
 	}
 
@@ -114,4 +155,32 @@ func (s *Storage) Ping(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func setUpdatedFields(updateBuilder sq.UpdateBuilder, person *model.Person) sq.UpdateBuilder {
+	if person.Name != "" {
+		updateBuilder = updateBuilder.Set("name", person.Name)
+	}
+
+	if person.Surname != "" {
+		updateBuilder = updateBuilder.Set("surname", person.Surname)
+	}
+
+	if person.Patronymic != "" {
+		updateBuilder = updateBuilder.Set("patronymic", person.Patronymic)
+	}
+
+	if person.Age > 0 {
+		updateBuilder = updateBuilder.Set("age", person.Age)
+	}
+
+	if person.Gender != "" {
+		updateBuilder = updateBuilder.Set("gender", person.Gender)
+	}
+
+	if person.Nationality != "" {
+		updateBuilder = updateBuilder.Set("nationality", person.Nationality)
+	}
+
+	return updateBuilder
 }

@@ -21,7 +21,7 @@ type PersonDeleter interface {
 // @Summary Delete a person
 // @Description Deletes a person by person id
 // @Tags /people
-// @Param id path string true "Person ID"
+// @Param id path int true "Person ID"
 // @Success 204 "Person deleted successfully"
 // @Failure 400 {object} dto.ErrorResponse "Missing or invalid id"
 // @Failure 404 {object} dto.ErrorResponse "Person not found"
@@ -32,8 +32,9 @@ func New(
 	log *slog.Logger,
 	personDeleter PersonDeleter,
 ) gin.HandlerFunc {
+	const op = "handler.person.delete.New"
+
 	return func(c *gin.Context) {
-		const op = "handler.person.delete.New"
 
 		log = log.With(slog.String("op", op))
 

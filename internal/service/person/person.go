@@ -5,16 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"person-info/internal/storage"
 
 	"person-info/internal/domain/model"
 	"person-info/internal/lib/logger/sl"
+	"person-info/internal/storage"
 )
 
 type Storage interface {
 	SavePerson(ctx context.Context, person *model.Person) error
 	PersonExists(ctx context.Context, person *model.Person) (bool, error)
 	DeletePerson(ctx context.Context, id int64) error
+	UpdatePerson(ctx context.Context, id int64, person *model.Person) (*model.Person, error)
 }
 
 type AgeProvider interface {
@@ -30,8 +31,9 @@ type NationalityProvider interface {
 }
 
 var (
-	ErrPersonExists   = errors.New("person already exists")
-	ErrPersonNotFound = errors.New("person not found")
+	ErrPersonExists    = errors.New("person already exists")
+	ErrPersonNotFound  = errors.New("person not found")
+	ErrNoUpdatedFields = errors.New("no updated fields")
 )
 
 type Service struct {
@@ -107,7 +109,7 @@ func (s *Service) Save(
 	person.Nationality = nationality
 
 	if err := s.storage.SavePerson(ctx, person); err != nil {
-		log.Error("failed to save person", sl.Err(err))
+		log.Error("failed to create person", sl.Err(err))
 
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -115,6 +117,41 @@ func (s *Service) Save(
 	log.Info("person saved successfully")
 
 	return nil
+}
+
+func (s *Service) Update(
+	ctx context.Context,
+	id int64,
+	person *model.Person,
+) (*model.Person, error) {
+	const op = "service.person.Update"
+
+	log := s.log.With(
+		slog.String("op", op),
+		slog.Int64("id", id),
+	)
+
+	log.Info("updating person")
+
+	updatedPerson, err := s.storage.UpdatePerson(ctx, id, person)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrNoUpdatedFields):
+			log.Info("no updated fields")
+
+			return nil, fmt.Errorf("%s: %w", op, ErrNoUpdatedFields)
+		case errors.Is(err, storage.ErrPersonNotFound):
+			log.Info("person not found")
+
+			return nil, fmt.Errorf("%s: %w", op, ErrPersonNotFound)
+		default:
+			log.Error("failed update person", sl.Err(err))
+
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+	}
+
+	return updatedPerson, nil
 }
 
 func (s *Service) Delete(ctx context.Context, id int64) error {

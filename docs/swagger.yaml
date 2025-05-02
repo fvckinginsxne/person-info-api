@@ -1,5 +1,20 @@
 basePath: /
 definitions:
+  dto.CreatePersonRequest:
+    properties:
+      name:
+        example: John
+        type: string
+      patronymic:
+        example: Dmitrievich
+        type: string
+      surname:
+        example: Snow
+        type: string
+    required:
+    - name
+    - surname
+    type: object
   dto.ErrorResponse:
     properties:
       error:
@@ -20,20 +35,20 @@ definitions:
       surname:
         type: string
     type: object
-  save.Request:
+  dto.UpdatePersonRequest:
     properties:
+      age:
+        type: integer
+      gender:
+        type: string
       name:
-        example: John
+        type: string
+      nationality:
         type: string
       patronymic:
-        example: Dmitrievich
         type: string
       surname:
-        example: Snow
         type: string
-    required:
-    - name
-    - surname
     type: object
 host: localhost:8080
 info:
@@ -53,7 +68,7 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/save.Request'
+          $ref: '#/definitions/dto.CreatePersonRequest'
       produces:
       - application/json
       responses:
@@ -84,7 +99,7 @@ paths:
         in: path
         name: id
         required: true
-        type: string
+        type: integer
       responses:
         "204":
           description: Person deleted successfully
@@ -101,6 +116,44 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       summary: Delete a person
+      tags:
+      - /people
+    patch:
+      consumes:
+      - application/json
+      description: Updates a person by id
+      parameters:
+      - description: Person ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update fields
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdatePersonRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated person
+          schema:
+            $ref: '#/definitions/dto.PersonResponse'
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Person not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Update a person
       tags:
       - /people
 schemes:
