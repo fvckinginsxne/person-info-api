@@ -18,36 +18,49 @@ definitions:
   dto.ErrorResponse:
     properties:
       error:
+        example: Something went wrong
         type: string
     type: object
   dto.PersonResponse:
     properties:
       age:
+        example: 20
         type: integer
       gender:
+        example: Male
         type: string
       name:
+        example: Matvey
         type: string
       nationality:
+        example: RU
         type: string
       patronymic:
+        example: Dmitrievich
         type: string
       surname:
+        example: Likhanov
         type: string
     type: object
   dto.UpdatePersonRequest:
     properties:
       age:
+        example: 30
         type: integer
       gender:
+        example: Male
         type: string
       name:
+        example: John
         type: string
       nationality:
+        example: RU
         type: string
       patronymic:
+        example: Dmitrievich
         type: string
       surname:
+        example: Snow
         type: string
     type: object
 host: localhost:8080
@@ -58,6 +71,79 @@ info:
   version: "1.0"
 paths:
   /people:
+    get:
+      description: Get people using filters and pagination
+      parameters:
+      - example: 30
+        in: query
+        maximum: 100
+        minimum: 1
+        name: age
+        type: integer
+      - enum:
+        - male
+        - female
+        example: male
+        in: query
+        name: gender
+        type: string
+      - example: John
+        in: query
+        name: name
+        type: string
+      - example: RU
+        in: query
+        name: nationality
+        type: string
+      - example: Dmitrich
+        in: query
+        name: patronymic
+        type: string
+      - example: Snow
+        in: query
+        name: surname
+        type: string
+      - example: 1
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - example: 10
+        in: query
+        minimum: 1
+        name: size
+        type: integer
+      - enum:
+        - asc
+        - desc
+        example: desc
+        in: query
+        name: order
+        type: string
+      - enum:
+        - name
+        - surname
+        - age
+        example: name
+        in: query
+        name: sort_by
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully fetched people
+          schema:
+            items:
+              $ref: '#/definitions/dto.PersonResponse'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get people
+      tags:
+      - /people
     post:
       consumes:
       - application/json

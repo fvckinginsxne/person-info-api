@@ -25,6 +25,7 @@ import (
 	"person-info/internal/storage/postgres"
 	"person-info/internal/transport/handler/person/create"
 	del "person-info/internal/transport/handler/person/delete"
+	"person-info/internal/transport/handler/person/read"
 	"person-info/internal/transport/handler/person/update"
 	healthchecker "person-info/internal/transport/middleware/health-checker"
 )
@@ -86,6 +87,7 @@ func main() {
 	peopleGroup := g.Group("/people")
 	{
 		peopleGroup.POST("/", create.New(ctx, log, service))
+		peopleGroup.GET("/", read.New(ctx, log, service))
 		peopleGroup.PATCH("/:id", update.New(ctx, log, service))
 		peopleGroup.DELETE("/:id", del.New(ctx, log, service))
 	}

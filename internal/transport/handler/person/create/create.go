@@ -10,14 +10,13 @@ import (
 	"github.com/gin-gonic/gin"
 
 	personClient "person-info/internal/client/person"
-	"person-info/internal/domain/model"
 	"person-info/internal/lib/logger/sl"
 	personSevice "person-info/internal/service/person"
 	"person-info/internal/transport/dto"
 )
 
 type PersonSaver interface {
-	Save(ctx context.Context, person *model.Person) error
+	Save(ctx context.Context, person *dto.CreatePersonRequest) (*dto.PersonResponse, error)
 }
 
 // @Summary Save new person
@@ -41,8 +40,8 @@ func New(
 	return func(c *gin.Context) {
 		log := log.With(slog.String("op", op))
 
-		var req dto.CreatePersonRequest
-		if err := c.ShouldBindJSON(&req); err != nil {
+		var res dto.CreatePersonRequest
+		if err := c.ShouldBindJSON(&res); err != nil {
 			if errors.Is(err, io.EOF) {
 				log.Error("request body is empty")
 
@@ -55,15 +54,10 @@ func New(
 			return
 		}
 
-		log.Debug("request body received", slog.Any("request", req))
+		log.Debug("request body received", slog.Any("request", res))
 
-		person := &model.Person{
-			Name:       req.Name,
-			Surname:    req.Surname,
-			Patronymic: req.Patronymic,
-		}
-
-		if err := personSaver.Save(ctx, person); err != nil {
+		person, err := personSaver.Save(ctx, &res)
+		if err != nil {
 			log.Error("failed to create person", sl.Err(err))
 
 			switch {
@@ -77,6 +71,6 @@ func New(
 			return
 		}
 
-		c.JSON(http.StatusCreated, dto.ToPersonResponse(person))
+		c.JSON(http.StatusCreated, person)
 	}
 }

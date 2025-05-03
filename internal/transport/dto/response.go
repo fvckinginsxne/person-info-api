@@ -25,3 +25,12 @@ func ToPersonResponse(p *model.Person) *PersonResponse {
 		Nationality: p.Nationality,
 	}
 }
+
+func PeopleToPersonResponse(people []*model.Person) []*PersonResponse {
+	peopleResponse := make([]*PersonResponse, len(people))
+	for i, p := range people {
+		peopleResponse[i] = ToPersonResponse(p)
+	}
+
+	return peopleResponse
+}

@@ -16,6 +16,112 @@ const docTemplate = `{
     "basePath": "{{.BasePath}}",
     "paths": {
         "/people": {
+            "get": {
+                "description": "Get people using filters and pagination",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "/people"
+                ],
+                "summary": "Get people",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "example": 30,
+                        "name": "age",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "male",
+                            "female"
+                        ],
+                        "type": "string",
+                        "example": "male",
+                        "name": "gender",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "John",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "RU",
+                        "name": "nationality",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "Dmitrich",
+                        "name": "patronymic",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "Snow",
+                        "name": "surname",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "example": 1,
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "example": 10,
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "asc",
+                            "desc"
+                        ],
+                        "type": "string",
+                        "example": "desc",
+                        "name": "order",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "name",
+                            "surname",
+                            "age"
+                        ],
+                        "type": "string",
+                        "example": "name",
+                        "name": "sort_by",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully fetched people",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.PersonResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "Saves a person enriching with age, gender, nationality",
                 "consumes": [
@@ -192,7 +298,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "error": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Something went wrong"
                 }
             }
         },
@@ -200,22 +307,28 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "age": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 20
                 },
                 "gender": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Male"
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Matvey"
                 },
                 "nationality": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "RU"
                 },
                 "patronymic": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Dmitrievich"
                 },
                 "surname": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Likhanov"
                 }
             }
         },
@@ -223,22 +336,28 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "age": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 30
                 },
                 "gender": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Male"
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "John"
                 },
                 "nationality": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "RU"
                 },
                 "patronymic": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Dmitrievich"
                 },
                 "surname": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Snow"
                 }
             }
         }

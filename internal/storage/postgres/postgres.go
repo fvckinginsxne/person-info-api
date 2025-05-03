@@ -14,7 +14,8 @@ import (
 )
 
 type Storage struct {
-	db *sql.DB
+	db      *sql.DB
+	builder sq.StatementBuilderType
 }
 
 func New(connURL string) (*Storage, error) {
@@ -29,7 +30,10 @@ func New(connURL string) (*Storage, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &Storage{db: db}, nil
+	return &Storage{
+		db:      db,
+		builder: sq.StatementBuilder.PlaceholderFormat(sq.Dollar),
+	}, nil
 }
 
 func (s *Storage) PersonExists(ctx context.Context, person *model.Person) (bool, error) {
@@ -44,6 +48,79 @@ func (s *Storage) PersonExists(ctx context.Context, person *model.Person) (bool,
 	}
 
 	return exists, nil
+}
+
+func (s *Storage) People(
+	ctx context.Context,
+	filters *model.PeopleFilters,
+	pagination *model.Pagination,
+	sort *model.SortOptions,
+) ([]*model.Person, error) {
+	const op = "service.person.People"
+
+	query := s.builder.Select(
+		"name",
+		"surname",
+		"patronymic",
+		"age",
+		"gender",
+		"nationality",
+	).From("people")
+
+	query = setFilters(query, filters)
+
+	if sort.By != "" {
+		order := sort.Order
+		if order == "" {
+			order = "ASC"
+		}
+		query = query.OrderBy(fmt.Sprintf("%s %s", sort.By, order))
+	}
+
+	if pagination.Size > 0 {
+		query = query.Limit(uint64(pagination.Size))
+	}
+
+	if pagination.Page > 1 && pagination.Size > 0 {
+		offset := (pagination.Page - 1) * pagination.Size
+		query = query.Offset(uint64(offset))
+	}
+
+	sqlQuery, args, err := query.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	rows, err := s.db.QueryContext(ctx, sqlQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer rows.Close()
+
+	var people []*model.Person
+	for rows.Next() {
+		var person model.Person
+
+		err := rows.Scan(
+			&person.Name,
+			&person.Surname,
+			&person.Patronymic,
+			&person.Age,
+			&person.Gender,
+			&person.Nationality,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+
+		people = append(people, &person)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return people, nil
 }
 
 func (s *Storage) SavePerson(ctx context.Context, person *model.Person) error {
@@ -80,9 +157,7 @@ func (s *Storage) UpdatePerson(
 ) (*model.Person, error) {
 	const op = "storage.postgres.UpdatePerson"
 
-	builder := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-
-	updateBuilder := builder.Update("people")
+	updateBuilder := s.builder.Update("people")
 
 	updateBuilder = setUpdatedFields(updateBuilder, person)
 
@@ -155,6 +230,30 @@ func (s *Storage) Ping(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func setFilters(query sq.SelectBuilder, filters *model.PeopleFilters) sq.SelectBuilder {
+	if filters.Name != "" {
+		query = query.Where(sq.ILike{"name": fmt.Sprintf("%%%s%%", filters.Name)})
+	}
+
+	if filters.Surname != "" {
+		query = query.Where(sq.ILike{"surname": fmt.Sprintf("%%%s%%", filters.Surname)})
+	}
+
+	if filters.Age > 0 {
+		query = query.Where(sq.GtOrEq{"age": filters.Age})
+	}
+
+	if filters.Gender != "" {
+		query = query.Where(sq.Eq{"gender": filters.Gender})
+	}
+
+	if filters.Nationality != "" {
+		query = query.Where(sq.Eq{"nationality": filters.Nationality})
+	}
+
+	return query
 }
 
 func setUpdatedFields(updateBuilder sq.UpdateBuilder, person *model.Person) sq.UpdateBuilder {

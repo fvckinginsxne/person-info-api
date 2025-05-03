@@ -9,6 +9,7 @@ import (
 	"person-info/internal/domain/model"
 	"person-info/internal/lib/logger/sl"
 	"person-info/internal/storage"
+	"person-info/internal/transport/dto"
 )
 
 type Storage interface {
@@ -16,6 +17,11 @@ type Storage interface {
 	PersonExists(ctx context.Context, person *model.Person) (bool, error)
 	DeletePerson(ctx context.Context, id int64) error
 	UpdatePerson(ctx context.Context, id int64, person *model.Person) (*model.Person, error)
+	People(ctx context.Context,
+		filters *model.PeopleFilters,
+		pagination *model.Pagination,
+		sort *model.SortOptions,
+	) ([]*model.Person, error)
 }
 
 type AgeProvider interface {
@@ -62,46 +68,48 @@ func New(
 
 func (s *Service) Save(
 	ctx context.Context,
-	person *model.Person,
-) error {
+	personReq *dto.CreatePersonRequest,
+) (*dto.PersonResponse, error) {
 	const op = "service.person.Save"
 
 	log := s.log.With(slog.String("op", op))
 
 	log.Info("saving person")
 
+	person := dto.CreateReqToPersonModel(personReq)
+
 	exists, err := s.storage.PersonExists(ctx, person)
 	if err != nil {
 		log.Error("failed check if person exists", sl.Err(err))
 
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	if exists {
 		log.Error("person already exists")
 
-		return fmt.Errorf("%s: %w", op, ErrPersonExists)
+		return nil, fmt.Errorf("%s: %w", op, ErrPersonExists)
 	}
 
 	age, err := s.ageProvider.Age(ctx, person.Name)
 	if err != nil {
 		log.Error("failed to get age", sl.Err(err))
 
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	gender, err := s.genderProvider.Gender(ctx, person.Name)
 	if err != nil {
 		log.Error("failed to get gender", sl.Err(err))
 
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	nationality, err := s.nationalityProvider.Nationality(ctx, person.Name)
 	if err != nil {
 		log.Error("failed to get nationality", sl.Err(err))
 
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	person.Age = age
@@ -111,19 +119,19 @@ func (s *Service) Save(
 	if err := s.storage.SavePerson(ctx, person); err != nil {
 		log.Error("failed to create person", sl.Err(err))
 
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	log.Info("person saved successfully")
 
-	return nil
+	return dto.ToPersonResponse(person), nil
 }
 
 func (s *Service) Update(
 	ctx context.Context,
 	id int64,
-	person *model.Person,
-) (*model.Person, error) {
+	person *dto.UpdatePersonRequest,
+) (*dto.PersonResponse, error) {
 	const op = "service.person.Update"
 
 	log := s.log.With(
@@ -133,7 +141,7 @@ func (s *Service) Update(
 
 	log.Info("updating person")
 
-	updatedPerson, err := s.storage.UpdatePerson(ctx, id, person)
+	updatedPerson, err := s.storage.UpdatePerson(ctx, id, dto.UpdateReqToPersonModel(person))
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrNoUpdatedFields):
@@ -151,7 +159,32 @@ func (s *Service) Update(
 		}
 	}
 
-	return updatedPerson, nil
+	return dto.ToPersonResponse(updatedPerson), nil
+}
+
+func (s *Service) People(ctx context.Context,
+	filters *dto.PeopleFilters,
+	pagination *dto.Pagination,
+	sorting *dto.SortOptions,
+) ([]*dto.PersonResponse, error) {
+	const op = "service.person.People"
+
+	log := s.log.With(slog.String("op", op))
+
+	log.Info("fetching people")
+
+	people, err := s.storage.People(ctx,
+		dto.ToPeopleFiltersModel(filters),
+		dto.ToPaginationModel(pagination),
+		dto.ToSortOptionsModel(sorting),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	log.Info("people fetched successfully")
+
+	return dto.PeopleToPersonResponse(people), nil
 }
 
 func (s *Service) Delete(ctx context.Context, id int64) error {

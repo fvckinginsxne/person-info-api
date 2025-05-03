@@ -10,14 +10,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"person-info/internal/domain/model"
 	"person-info/internal/lib/logger/sl"
 	personService "person-info/internal/service/person"
 	"person-info/internal/transport/dto"
 )
 
 type PersonUpdater interface {
-	Update(ctx context.Context, id int64, person *model.Person) (*model.Person, error)
+	Update(ctx context.Context, id int64, person *dto.UpdatePersonRequest) (*dto.PersonResponse, error)
 }
 
 // @Summary Update a person
@@ -50,8 +49,8 @@ func New(
 			return
 		}
 
-		var req dto.UpdatePersonRequest
-		if err := c.ShouldBindJSON(&req); err != nil {
+		var req *dto.UpdatePersonRequest
+		if err := c.ShouldBindJSON(req); err != nil {
 			if errors.Is(err, io.EOF) {
 				log.Error("request body is empty")
 
@@ -64,7 +63,7 @@ func New(
 			return
 		}
 
-		updatedPerson, err := personUpdater.Update(ctx, id, dto.ToPersonModel(&req))
+		updatedPerson, err := personUpdater.Update(ctx, id, req)
 		if err != nil {
 			switch {
 			case errors.Is(err, personService.ErrPersonNotFound):
@@ -83,6 +82,6 @@ func New(
 			return
 		}
 
-		c.JSON(http.StatusOK, dto.ToPersonResponse(updatedPerson))
+		c.JSON(http.StatusOK, updatedPerson)
 	}
 }
