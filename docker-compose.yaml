@@ -1,4 +1,21 @@
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${SERVER_PORT}:8080"
+    env_file: .env
+    environment:
+      - CONFIG_PATH=/app/.env
+    volumes:
+      - go_mod_cache:/go/pkg/mod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
   migrate:
     image: migrate/migrate:v4.18.2
     env_file: .env
@@ -31,3 +48,4 @@ services:
 
 volumes:
   people_postgres_data:
+  go_mod_cache:
